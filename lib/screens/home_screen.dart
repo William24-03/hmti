@@ -1,232 +1,222 @@
 import 'package:flutter/material.dart';
-import '../models/post.dart';
+import '../models/book.dart';
+import '../models/news.dart';
 import '../services/api_service.dart';
-import 'detail_screen.dart';
-import 'create_edit_post_screen.dart';
-import 'edit_profile_screen.dart'; // ✅ Tambahkan ini
+import 'create_edit_book_screen.dart';
+import 'create_edit_news_screen.dart';
+import 'detail_book_screen.dart';
+import 'detail_news_screen.dart';
+import 'edit_profile_screen.dart';
+import '../widgets/book_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
-
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _currentIndex = 0;
-  late Future<List<Post>> _futurePosts;
+  late Future<List<Book>> _booksFuture;
+  late Future<List<News>> _newsFuture;
+  int _tabIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    _futurePosts = ApiService.fetchPosts();
+    _loadAll();
+  }
+
+  void _loadAll() {
+    _booksFuture = ApiService.fetchBooks();
+    _newsFuture = ApiService.fetchNews();
   }
 
   Future<void> _refresh() async {
     setState(() {
-      _futurePosts = ApiService.fetchPosts();
+      _loadAll();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final List<Widget> pages = [
-      // 🏠 HOME PAGE
+    final pages = [
+      // Books tab
       RefreshIndicator(
         onRefresh: _refresh,
-        child: FutureBuilder<List<Post>>(
-          future: _futurePosts,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return ListView(
-                children: [
-                  SizedBox(height: 200),
-                  Center(child: CircularProgressIndicator()),
-                ],
-              );
-            } else if (snapshot.hasError) {
-              return ListView(
-                children: [
-                  SizedBox(height: 80),
-                  Center(child: Text('Error: ${snapshot.error}')),
-                  SizedBox(height: 20),
-                  Center(
+        child: FutureBuilder<List<Book>>(
+          future: _booksFuture,
+          builder: (context, snap) {
+            if (snap.connectionState == ConnectionState.waiting)
+              return ListView(children: const [
+                SizedBox(height: 200),
+                Center(child: CircularProgressIndicator())
+              ]);
+            if (snap.hasError)
+              return ListView(children: [
+                const SizedBox(height: 80),
+                Center(child: Text('Gagal memuat books')),
+                Center(
                     child: ElevatedButton(
-                      onPressed: _refresh,
-                      child: Text('Coba lagi'),
-                    ),
-                  ),
-                ],
-              );
-            } else {
-              final posts = snapshot.data ?? [];
-              if (posts.isEmpty) {
-                return ListView(
-                  children: [
-                    SizedBox(height: 80),
-                    Center(child: Text('Belum ada post')),
-                  ],
-                );
-              }
-              return ListView.builder(
-                itemCount: posts.length,
-                itemBuilder: (context, index) {
-                  final p = posts[index];
+                        onPressed: _refresh, child: const Text('Retry')))
+              ]);
+            final books = snap.data ?? [];
+            if (books.isEmpty)
+              return ListView(children: const [
+                SizedBox(height: 80),
+                Center(child: Text('Belum ada buku'))
+              ]);
+            return ListView.builder(
+                itemCount: books.length,
+                itemBuilder: (c, idx) {
+                  final b = books[idx];
                   return Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: InkWell(
-                      onTap: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => DetailScreen(post: p),
-                          ),
-                        );
-                        _refresh();
-                      },
-                      child: Card(
-                        elevation: 3,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (p.image != null && p.image!.isNotEmpty)
-                              ClipRRect(
-                                borderRadius: BorderRadius.vertical(
-                                  top: Radius.circular(8.0),
-                                ),
-                                child: Image.network(
-                                  p.image!,
-                                  height: 180,
-                                  width: double.infinity,
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                            Padding(
-                              padding: const EdgeInsets.all(12.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    p.title,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 18,
-                                    ),
-                                  ),
-                                  SizedBox(height: 6),
-                                  Text(
-                                    '${p.author} • ${p.createdAt ?? ''}',
-                                    style: TextStyle(color: Colors.grey),
-                                  ),
-                                  SizedBox(height: 8),
-                                  Text(
-                                    p.content.length > 120
-                                        ? p.content.substring(0, 120) + '...'
-                                        : p.content,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              );
-            }
+                      padding: const EdgeInsets.all(8),
+                      child: BookCard(
+                          book: b,
+                          onTap: () async {
+                            final r = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => DetailBookScreen(book: b)));
+                            if (r == true) _refresh();
+                          }));
+                });
           },
         ),
       ),
-      // 📄 Explore (kosong dulu)
-      Container(),
-      // 🔖 Bookmark (kosong dulu)
-      Container(),
-      // 👤 Profile Page
-      EditProfileScreen(), // ✅ Ganti Container dengan ini
+
+      // News tab
+      RefreshIndicator(
+        onRefresh: _refresh,
+        child: FutureBuilder<List<News>>(
+          future: _newsFuture,
+          builder: (context, snap) {
+            if (snap.connectionState == ConnectionState.waiting)
+              return ListView(children: const [
+                SizedBox(height: 200),
+                Center(child: CircularProgressIndicator())
+              ]);
+            if (snap.hasError)
+              return ListView(children: [
+                const SizedBox(height: 80),
+                Center(child: Text('Gagal memuat news')),
+                Center(
+                    child: ElevatedButton(
+                        onPressed: _refresh, child: const Text('Retry')))
+              ]);
+            final list = snap.data ?? [];
+            if (list.isEmpty)
+              return ListView(children: const [
+                SizedBox(height: 80),
+                Center(child: Text('Belum ada news'))
+              ]);
+            return ListView.builder(
+                itemCount: list.length,
+                itemBuilder: (c, i) {
+                  final n = list[i];
+                  return Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: ListTile(
+                        title: Text(n.title),
+                        subtitle: Text('${n.author} • ${n.createdAt ?? ''}'),
+                        onTap: () async {
+                          final r = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => DetailNewsScreen(news: n)));
+                          if (r == true) _refresh();
+                        },
+                      ));
+                });
+          },
+        ),
+      ),
+
+      // Explore placeholder
+      const Center(child: Text('Explore (kosong)')),
+
+      // Profile
+      const EditProfileScreen(),
     ];
 
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          children: [
-            Text(
-              'HMTI',
+        title: Row(children: const [
+          Text('HMTI',
               style: TextStyle(
-                color: Colors.black,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Text(
-              ' News',
+                  color: Colors.black,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold)),
+          Text(' News',
               style: TextStyle(
-                color: Color(0xFF1877F2),
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
+                  color: Color(0xFF1877F2),
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold))
+        ]),
         backgroundColor: Colors.white,
-        iconTheme: IconThemeData(color: Colors.black),
+        iconTheme: const IconThemeData(color: Colors.black),
         actions: [
-          // ✅ Tombol tambah berita hanya muncul di tab Home
-          if (_currentIndex == 0)
+          if (_tabIndex == 0)
             IconButton(
-              icon: Icon(Icons.add, color: Colors.black),
-              onPressed: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => CreateEditPostScreen()),
-                );
-                _refresh();
-              },
-            ),
+                icon: const Icon(Icons.add, color: Colors.black),
+                onPressed: () async {
+                  final res = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const CreateEditBookScreen()));
+                  if (res == true) _refresh();
+                }),
+          if (_tabIndex == 1)
+            IconButton(
+                icon: const Icon(Icons.add, color: Colors.black),
+                onPressed: () async {
+                  final res = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const CreateEditNewsScreen()));
+                  if (res == true) _refresh();
+                }),
         ],
       ),
       drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: <Widget>[
-            DrawerHeader(
-              child: Text('Pengaturan', style: TextStyle(color: Colors.white)),
-              decoration: BoxDecoration(color: Color(0xFF1877F2)),
-            ),
-            ListTile(
-              leading: Icon(Icons.person),
-              title: Text('Profil'),
-              onTap: () {
-                Navigator.pop(context);
-                setState(() => _currentIndex = 3); // 👤 Buka tab Profile
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.settings),
-              title: Text('Pengaturan'),
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-          ],
-        ),
-      ),
-      body: IndexedStack(index: _currentIndex, children: pages),
+          child: ListView(padding: EdgeInsets.zero, children: [
+        const DrawerHeader(
+            child: Text('Pengaturan', style: TextStyle(color: Colors.white)),
+            decoration: BoxDecoration(color: Color(0xFF1877F2))),
+        ListTile(
+            leading: const Icon(Icons.person),
+            title: const Text('Profil'),
+            onTap: () {
+              Navigator.pop(context);
+              setState(() => _tabIndex = 3);
+            }),
+        ListTile(
+            leading: const Icon(Icons.settings),
+            title: const Text('Pengaturan'),
+            onTap: () {
+              Navigator.pop(context);
+            }),
+        ListTile(
+            leading: const Icon(Icons.logout),
+            title: const Text('Logout'),
+            onTap: () async {
+              await ApiService.logout();
+              Navigator.pushReplacementNamed(context, '/login');
+            })
+      ])),
+      body: IndexedStack(index: _tabIndex, children: pages),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-        selectedItemColor: Color(0xFF1877F2),
-        unselectedItemColor: Colors.black,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.explore), label: 'Explore'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.bookmark),
-            label: 'Bookmark',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-        ],
-      ),
+          currentIndex: _tabIndex,
+          onTap: (i) => setState(() => _tabIndex = i),
+          selectedItemColor: const Color(0xFF1877F2),
+          unselectedItemColor: Colors.black,
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Books'),
+            BottomNavigationBarItem(icon: Icon(Icons.article), label: 'News'),
+            BottomNavigationBarItem(
+                icon: Icon(Icons.explore), label: 'Explore'),
+            BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+          ]),
     );
   }
 }

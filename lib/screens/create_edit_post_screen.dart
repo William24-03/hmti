@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import '../models/post.dart';
 import '../services/api_service.dart';
 
@@ -18,7 +18,6 @@ class _CreateEditPostScreenState extends State<CreateEditPostScreen> {
   final _contentC = TextEditingController();
   final _authorC = TextEditingController();
   File? _imageFile;
-  final ImagePicker _picker = ImagePicker();
   bool _loading = false;
 
   @override
@@ -31,15 +30,27 @@ class _CreateEditPostScreenState extends State<CreateEditPostScreen> {
     }
   }
 
+  //  Ganti fungsi ambil gambar agar buka file explorer laptop (bukan galeri emulator)
   Future<void> _pickImage() async {
-    final XFile? picked = await _picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 80,
-    );
-    if (picked != null) {
-      setState(() {
-        _imageFile = File(picked.path);
-      });
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
+      );
+
+      if (result != null && result.files.single.path != null) {
+        setState(() {
+          _imageFile = File(result.files.single.path!);
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Tidak ada file yang dipilih')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Gagal memilih file: $e')));
     }
   }
 
@@ -56,7 +67,7 @@ class _CreateEditPostScreenState extends State<CreateEditPostScreen> {
         );
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Post berhasil dibuat')));
+        ).showSnackBar(const SnackBar(content: Text('Post berhasil dibuat')));
       } else {
         await ApiService.updatePost(
           id: widget.editPost!.id,
@@ -65,9 +76,9 @@ class _CreateEditPostScreenState extends State<CreateEditPostScreen> {
           author: _authorC.text,
           imageFile: _imageFile,
         );
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Post berhasil diperbarui')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Post berhasil diperbarui')),
+        );
       }
       Navigator.pop(context, true);
     } catch (e) {
@@ -125,41 +136,41 @@ class _CreateEditPostScreenState extends State<CreateEditPostScreen> {
                               ),
                             )),
               ),
-              SizedBox(height: 12),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _titleC,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Title',
                   border: OutlineInputBorder(),
                 ),
                 validator: (v) =>
                     v == null || v.isEmpty ? 'Title harus diisi' : null,
               ),
-              SizedBox(height: 12),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _authorC,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Author',
                   border: OutlineInputBorder(),
                 ),
                 validator: (v) =>
                     v == null || v.isEmpty ? 'Author harus diisi' : null,
               ),
-              SizedBox(height: 12),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _contentC,
                 minLines: 5,
                 maxLines: 10,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Content',
                   border: OutlineInputBorder(),
                 ),
                 validator: (v) =>
                     v == null || v.isEmpty ? 'Content harus diisi' : null,
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               _loading
-                  ? CircularProgressIndicator()
+                  ? const CircularProgressIndicator()
                   : ElevatedButton(
                       onPressed: _submit,
                       child: Text(isEdit ? 'Update' : 'Create'),

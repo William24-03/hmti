@@ -12,34 +12,35 @@ class DetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Detail News'),
+        title: const Text('Detail News'),
         actions: [
           IconButton(
-            icon: Icon(Icons.delete),
+            icon: const Icon(Icons.delete),
             onPressed: () async {
               final confirmed = await showDialog<bool>(
                 context: context,
                 builder: (_) => AlertDialog(
-                  title: Text('Hapus post?'),
-                  content: Text('Yakin ingin menghapus post ini?'),
+                  title: const Text('Hapus post?'),
+                  content: const Text('Yakin ingin menghapus post ini?'),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(context, false),
-                      child: Text('Batal'),
+                      child: const Text('Batal'),
                     ),
                     TextButton(
                       onPressed: () => Navigator.pop(context, true),
-                      child: Text('Hapus'),
+                      child: const Text('Hapus'),
                     ),
                   ],
                 ),
               );
+
               if (confirmed == true) {
                 try {
                   await ApiService.deletePost(post.id);
                   ScaffoldMessenger.of(
                     context,
-                  ).showSnackBar(SnackBar(content: Text('Post dihapus')));
+                  ).showSnackBar(const SnackBar(content: Text('Post dihapus')));
                   Navigator.pop(context, true); // kembali ke list
                 } catch (e) {
                   ScaffoldMessenger.of(
@@ -50,7 +51,7 @@ class DetailScreen extends StatelessWidget {
             },
           ),
           IconButton(
-            icon: Icon(Icons.edit),
+            icon: const Icon(Icons.edit),
             onPressed: () async {
               // buka screen edit
               final res = await Navigator.push(
@@ -72,19 +73,37 @@ class DetailScreen extends StatelessWidget {
           child: Column(
             children: [
               if (post.image != null && post.image!.isNotEmpty)
-                Image.network(post.image!),
-              SizedBox(height: 16),
+                Image.network(
+                  post.image!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      height: 200,
+                      width: double.infinity,
+                      color: Colors.grey[300],
+                      child: const Icon(
+                        Icons.broken_image,
+                        size: 80,
+                        color: Colors.grey,
+                      ),
+                    );
+                  },
+                ),
+              const SizedBox(height: 16),
               Text(
                 post.title,
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               Text(
                 'By ${post.author} • ${post.createdAt ?? ''}',
-                style: TextStyle(color: Colors.grey),
+                style: const TextStyle(color: Colors.grey),
               ),
-              SizedBox(height: 16),
-              Text(post.content, style: TextStyle(fontSize: 16)),
+              const SizedBox(height: 16),
+              Text(post.content, style: const TextStyle(fontSize: 16)),
             ],
           ),
         ),
